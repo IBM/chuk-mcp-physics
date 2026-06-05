@@ -641,7 +641,9 @@ def main() -> None:  # pragma: no cover
     # 2. Network-level firewall rules are in place
     # 3. Not exposing directly to the internet
     if transport == "http":
-        run(transport=transport, host="0.0.0.0", port=8000)  # nosec B104
+        import os
+
+        run(transport=transport, host="0.0.0.0", port=int(os.environ.get("PORT", "8000")))  # nosec B104
     else:
         run(transport=transport)
 

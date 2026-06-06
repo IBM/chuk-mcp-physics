@@ -153,7 +153,7 @@ impl RedisStorage {
             .arg(&key)
             .arg(self.ttl_seconds)
             .arg(timestamp)
-            .query_async(&mut conn)
+            .query_async::<_, ()>(&mut conn)
             .await
             .map_err(|e| StorageError::ConnectionError(format!("Redis SETEX failed: {}", e)))?;
 
@@ -215,7 +215,7 @@ impl SimulationStorage for RedisStorage {
             let key = self.meta_key(sim_id);
             redis::cmd("DEL")
                 .arg(&key)
-                .query_async(&mut conn)
+                .query_async::<_, ()>(&mut conn)
                 .await
                 .map_err(|e| StorageError::ConnectionError(format!("Redis DEL failed: {}", e)))?;
         }

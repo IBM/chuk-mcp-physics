@@ -53,11 +53,12 @@ async fn main() {
         .layer(CorsLayer::permissive())
         .with_state(simulations);
 
-    // Start server
-    let addr = "0.0.0.0:9000";
+    // Start server (PORT is assigned by the host fleet; default 9000 standalone)
+    let port = std::env::var("PORT").unwrap_or_else(|_| "9000".to_string());
+    let addr = format!("0.0.0.0:{}", port);
     info!("🦀 Rapier Physics Service starting on {}", addr);
 
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(addr.as_str()).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
 

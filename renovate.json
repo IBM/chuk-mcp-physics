@@ -11,11 +11,6 @@
       "description": "Automerge CI-validated GitHub Actions updates (incl. major)",
       "matchManagers": ["github-actions"],
       "automerge": true
-    },
-    {
-      "description": "Pause cargo updates: rapier-service code targets pinned crate APIs (rapier3d 0.18, redis 0.24, axum 0.7, ...); upgrading needs a deliberate code port first.",
-      "matchManagers": ["cargo"],
-      "enabled": false
     }
   ]
 }

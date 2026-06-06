@@ -1,0 +1,22 @@
+name: Rust (rapier-service)
+
+on:
+  push:
+    branches: [ main ]
+    paths: [ 'rapier-service/**', '.github/workflows/rust.yml' ]
+  pull_request:
+    branches: [ main ]
+    paths: [ 'rapier-service/**', '.github/workflows/rust.yml' ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rapier-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo build --verbose
+      - run: cargo test --verbose

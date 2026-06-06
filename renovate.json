@@ -1,6 +1,26 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    ":automergeMinor",
+    ":automergeDigest"
+  ],
+  "platformAutomerge": true,
+  "packageRules": [
+    {
+      "description": "Automerge CI-validated GitHub Actions updates (incl. major)",
+      "matchManagers": ["github-actions"],
+      "automerge": true
+    },
+    {
+      "description": "Hold Docker base-image updates for manual review (e.g. python 3.x)",
+      "matchDatasources": ["docker"],
+      "automerge": false
+    },
+    {
+      "description": "Hold Rust crate updates for manual review",
+      "matchManagers": ["cargo"],
+      "automerge": false
+    }
   ]
 }

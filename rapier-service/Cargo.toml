@@ -25,7 +25,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Math
-nalgebra = "0.32"
+nalgebra = "0.35"
 
 # Storage backends
 redis = { version = "0.24", features = ["tokio-comp", "connection-manager"] }

@@ -13,14 +13,15 @@
       "automerge": true
     },
     {
-      "description": "Hold Docker base-image updates for manual review (e.g. python 3.x)",
-      "matchDatasources": ["docker"],
-      "automerge": false
+      "description": "Pin Docker base images; fleet standardises on python 3.11 (host builds 3.11 venvs)",
+      "matchManagers": ["dockerfile"],
+      "matchDepNames": ["python"],
+      "enabled": false
     },
     {
-      "description": "Hold Rust crate updates for manual review",
+      "description": "Pause Rust crate updates until rapier-service compiles and is covered by CI",
       "matchManagers": ["cargo"],
-      "automerge": false
+      "enabled": false
     }
   ]
 }

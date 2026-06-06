@@ -44,12 +44,12 @@ async fn main() {
     let app = Router::new()
         .route("/health", get(health_check))
         .route("/simulations", post(create_simulation))
-        .route("/simulations/:sim_id/state", get(get_simulation_state))
-        .route("/simulations/:sim_id", delete(destroy_simulation))
-        .route("/simulations/:sim_id/bodies", post(add_body))
-        .route("/simulations/:sim_id/joints", post(add_joint))
-        .route("/simulations/:sim_id/step", post(step_simulation))
-        .route("/simulations/:sim_id/bodies/:body_id/trajectory", post(record_trajectory))
+        .route("/simulations/{sim_id}/state", get(get_simulation_state))
+        .route("/simulations/{sim_id}", delete(destroy_simulation))
+        .route("/simulations/{sim_id}/bodies", post(add_body))
+        .route("/simulations/{sim_id}/joints", post(add_joint))
+        .route("/simulations/{sim_id}/step", post(step_simulation))
+        .route("/simulations/{sim_id}/bodies/{body_id}/trajectory", post(record_trajectory))
         .layer(CorsLayer::permissive())
         .with_state(simulations);
 

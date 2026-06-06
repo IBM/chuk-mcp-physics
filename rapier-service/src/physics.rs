@@ -1,4 +1,4 @@
-use nalgebra::{Point3, Quaternion, UnitQuaternion, Vector3};
+use rapier3d::math::{Pose3, Rotation, Vec3};
 use rapier3d::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -68,13 +68,12 @@ pub struct Simulation {
     integration_parameters: IntegrationParameters,
     physics_pipeline: PhysicsPipeline,
     island_manager: IslandManager,
-    broad_phase: BroadPhase,
+    broad_phase: BroadPhaseBvh,
     narrow_phase: NarrowPhase,
     impulse_joint_set: ImpulseJointSet,
     multibody_joint_set: MultibodyJointSet,
     ccd_solver: CCDSolver,
-    query_pipeline: QueryPipeline,
-    gravity: Vector3<f32>,
+    gravity: Vec3,
     body_ids: HashMap<String, RigidBodyHandle>,
     body_names: HashMap<RigidBodyHandle, String>,
 
@@ -92,7 +91,7 @@ pub struct Simulation {
 
 impl Simulation {
     pub fn new(config: SimulationConfig) -> Self {
-        let gravity = Vector3::new(config.gravity[0], config.gravity[1], config.gravity[2]);
+        let gravity = Vec3::new(config.gravity[0], config.gravity[1], config.gravity[2]);
 
         let mut integration_parameters = IntegrationParameters::default();
         integration_parameters.dt = config.dt;
@@ -105,12 +104,11 @@ impl Simulation {
             integration_parameters,
             physics_pipeline: PhysicsPipeline::new(),
             island_manager: IslandManager::new(),
-            broad_phase: BroadPhase::new(),
+            broad_phase: BroadPhaseBvh::new(),
             narrow_phase: NarrowPhase::new(),
             impulse_joint_set: ImpulseJointSet::new(),
             multibody_joint_set: MultibodyJointSet::new(),
             ccd_solver: CCDSolver::new(),
-            query_pipeline: QueryPipeline::new(),
             gravity,
             body_ids: HashMap::new(),
             body_names: HashMap::new(),
@@ -148,11 +146,8 @@ impl Simulation {
         let pos = position.unwrap_or([0.0, 0.0, 0.0]);
         let ori = orientation.unwrap_or([0.0, 0.0, 0.0, 1.0]);
 
-        let rotation = UnitQuaternion::from_quaternion(Quaternion::new(ori[3], ori[0], ori[1], ori[2]));
-        let isometry = Isometry::from_parts(
-            Translation::new(pos[0], pos[1], pos[2]),
-            rotation,
-        );
+        let rotation = Rotation::from_xyzw(ori[0], ori[1], ori[2], ori[3]);
+        let isometry = Pose3::from_parts(Vec3::new(pos[0], pos[1], pos[2]), rotation);
 
         let rigid_body = match kind.as_str() {
             "static" => RigidBodyBuilder::fixed().position(isometry),
@@ -161,11 +156,11 @@ impl Simulation {
                 let mut builder = RigidBodyBuilder::dynamic().position(isometry);
 
                 if let Some(vel) = velocity {
-                    builder = builder.linvel(Vector3::new(vel[0], vel[1], vel[2]));
+                    builder = builder.linvel(Vec3::new(vel[0], vel[1], vel[2]));
                 }
 
                 if let Some(ang_vel) = angular_velocity {
-                    builder = builder.angvel(Vector3::new(ang_vel[0], ang_vel[1], ang_vel[2]));
+                    builder = builder.angvel(Vec3::new(ang_vel[0], ang_vel[1], ang_vel[2]));
                 }
 
                 // Apply damping (Phase 1.4)
@@ -187,9 +182,9 @@ impl Simulation {
         let collider = match shape.as_str() {
             "box" => {
                 let half_extents = if size.len() >= 3 {
-                    Vector3::new(size[0] / 2.0, size[1] / 2.0, size[2] / 2.0)
+                    Vec3::new(size[0] / 2.0, size[1] / 2.0, size[2] / 2.0)
                 } else {
-                    Vector3::new(0.5, 0.5, 0.5)
+                    Vec3::new(0.5, 0.5, 0.5)
                 };
                 ColliderBuilder::cuboid(half_extents.x, half_extents.y, half_extents.z)
             }
@@ -206,8 +201,8 @@ impl Simulation {
                 // Plane shape: infinite plane defined by normal vector and offset
                 let normal_arr = normal.unwrap_or([0.0, 1.0, 0.0]); // Default: upward facing
                 let plane_offset = offset.unwrap_or(0.0);
-                let normal_vec = Vector3::new(normal_arr[0], normal_arr[1], normal_arr[2]);
-                ColliderBuilder::halfspace(UnitVector::new_normalize(normal_vec))
+                let normal_vec = Vec3::new(normal_arr[0], normal_arr[1], normal_arr[2]);
+                ColliderBuilder::new(SharedShape::halfspace(normal_vec.normalize()))
                     .translation(normal_vec * plane_offset)
             }
             _ => ColliderBuilder::ball(0.5), // Default to sphere
@@ -299,7 +294,7 @@ impl Simulation {
             self.apply_orientation_dependent_drag();
 
             self.physics_pipeline.step(
-                &self.gravity,
+                self.gravity,
                 &self.integration_parameters,
                 &mut self.island_manager,
                 &mut self.broad_phase,
@@ -309,7 +304,6 @@ impl Simulation {
                 &mut self.impulse_joint_set,
                 &mut self.multibody_joint_set,
                 &mut self.ccd_solver,
-                Some(&mut self.query_pipeline),
                 &(),
                 &(),
             );
@@ -335,7 +329,7 @@ impl Simulation {
         for (collider_handle, _) in self.collider_set.iter() {
             for contact_pair in self.narrow_phase.contact_pairs_with(collider_handle) {
                 // Check if contact is active (has manifolds)
-                if !contact_pair.has_any_active_contact {
+                if !contact_pair.has_any_active_contact() {
                     continue;
                 }
 
@@ -360,7 +354,7 @@ impl Simulation {
 
         Some(RigidBodyState {
             position: [pos.x, pos.y, pos.z],
-            orientation: [rot.i, rot.j, rot.k, rot.w],
+            orientation: [rot.x, rot.y, rot.z, rot.w],
             velocity: [vel.x, vel.y, vel.z],
             angular_velocity: [ang_vel.x, ang_vel.y, ang_vel.z],
             contacts,
@@ -395,8 +389,8 @@ impl Simulation {
                 }
 
                 // Get velocity in world space
-                let velocity_world = *body.linvel();
-                let speed = velocity_world.magnitude();
+                let velocity_world = body.linvel();
+                let speed = velocity_world.length();
 
                 // Skip if velocity is negligible
                 if speed < 1e-6 {
@@ -408,7 +402,7 @@ impl Simulation {
 
                 // Transform velocity to body-local coordinates
                 // This gives us the velocity components along the body's x, y, z axes
-                let velocity_local = rotation.inverse_transform_vector(&velocity_world);
+                let velocity_local = rotation.inverse() * velocity_world;
 
                 // Calculate drag coefficient modulated by orientation
                 // drag_axis_ratios: [x_ratio, y_ratio, z_ratio]
@@ -480,7 +474,7 @@ impl Simulation {
 
                 // Safety check: drag must always do negative work (oppose motion)
                 // If dot(F_drag, v) > 0, drag would accelerate instead of decelerate
-                let dot = drag_force_vec.dot(&velocity_world);
+                let dot = drag_force_vec.dot(velocity_world);
                 if dot > 0.0 {
                     // This should never happen with correct implementation
                     // If it does, flip the force to ensure it opposes motion
@@ -509,7 +503,7 @@ impl Simulation {
         // Iterate through all active contact pairs
         for pair in self.narrow_phase.contact_pairs() {
             // Only track pairs with active contacts
-            if !pair.has_any_active_contact {
+            if !pair.has_any_active_contact() {
                 continue;
             }
 
@@ -619,8 +613,8 @@ impl Simulation {
             .ok_or(format!("Body '{}' not found", def.body_b))?;
 
         // Convert anchors to Point3
-        let anchor_a = Point3::new(def.anchor_a[0], def.anchor_a[1], def.anchor_a[2]);
-        let anchor_b = Point3::new(def.anchor_b[0], def.anchor_b[1], def.anchor_b[2]);
+        let anchor_a = Vec3::new(def.anchor_a[0], def.anchor_a[1], def.anchor_a[2]);
+        let anchor_b = Vec3::new(def.anchor_b[0], def.anchor_b[1], def.anchor_b[2]);
 
         // Create joint based on type and convert to GenericJoint
         let joint: GenericJoint = match def.joint_type.as_str() {
@@ -634,7 +628,7 @@ impl Simulation {
 
             "revolute" => {
                 let axis = def.axis.unwrap_or([0.0, 1.0, 0.0]);
-                let axis_unit = UnitVector::new_normalize(Vector3::new(axis[0], axis[1], axis[2]));
+                let axis_unit = Vec3::new(axis[0], axis[1], axis[2]).normalize();
 
                 let mut joint = RevoluteJointBuilder::new(axis_unit)
                     .local_anchor1(anchor_a)
@@ -659,7 +653,7 @@ impl Simulation {
 
             "prismatic" => {
                 let axis = def.axis.unwrap_or([0.0, 1.0, 0.0]);
-                let axis_unit = UnitVector::new_normalize(Vector3::new(axis[0], axis[1], axis[2]));
+                let axis_unit = Vec3::new(axis[0], axis[1], axis[2]).normalize();
 
                 let mut joint = PrismaticJointBuilder::new(axis_unit)
                     .local_anchor1(anchor_a)
@@ -690,5 +684,99 @@ impl Simulation {
         self.joint_names.insert(joint_handle, def.id.clone());
 
         Ok(def.id)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn cfg(gy: f32) -> SimulationConfig {
+        SimulationConfig {
+            gravity: [0.0, gy, 0.0],
+            dimensions: 3,
+            dt: 0.016,
+            integrator: "verlet".to_string(),
+        }
+    }
+
+    // Convenience: add a body with mostly-default args.
+    #[allow(clippy::too_many_arguments)]
+    fn add(
+        sim: &mut Simulation,
+        id: &str,
+        kind: &str,
+        shape: &str,
+        size: Vec<f32>,
+        mass: Option<f32>,
+        position: [f32; 3],
+        restitution: f32,
+    ) {
+        sim.add_body(
+            id.to_string(), kind.to_string(), shape.to_string(), size, mass,
+            Some(position), None, None, None, 0.5, restitution,
+            None, None, None, None, None, None, None, None,
+        );
+    }
+
+    #[test]
+    fn body_falls_under_gravity() {
+        let mut sim = Simulation::new(cfg(-9.81));
+        add(&mut sim, "b", "dynamic", "sphere", vec![0.5], Some(1.0), [0.0, 10.0, 0.0], 0.0);
+        let y0 = sim.get_body_state("b").unwrap().position[1];
+        sim.step(60, None); // ~0.96 s
+        let st = sim.get_body_state("b").unwrap();
+        assert!(st.velocity[1] < 0.0, "should move downward, vy={}", st.velocity[1]);
+        let dropped = y0 - st.position[1];
+        // free-fall ≈ 0.5 * 9.81 * 0.96² ≈ 4.5 m
+        assert!(dropped > 3.0 && dropped < 6.0, "dropped {dropped} m (expected ~4.5)");
+    }
+
+    #[test]
+    fn body_rests_on_floor() {
+        let mut sim = Simulation::new(cfg(-9.81));
+        add(&mut sim, "floor", "static", "box", vec![100.0, 0.2, 100.0], None, [0.0, 0.0, 0.0], 0.0);
+        add(&mut sim, "ball", "dynamic", "sphere", vec![0.5], Some(1.0), [0.0, 5.0, 0.0], 0.0);
+        sim.step(300, None); // ~4.8 s to settle
+        let st = sim.get_body_state("ball").unwrap();
+        // floor top ≈ y=0.1, ball radius 0.5 → rests near y≈0.6
+        assert!(st.position[1] > 0.3 && st.position[1] < 1.2, "ball should rest on floor, y={}", st.position[1]);
+        assert!(st.velocity[1].abs() < 0.5, "ball should be at rest, vy={}", st.velocity[1]);
+        assert!(st.contacts.contains(&"floor".to_string()), "ball should contact floor");
+    }
+
+    #[test]
+    fn revolute_joint_can_be_added() {
+        let mut sim = Simulation::new(cfg(-9.81));
+        add(&mut sim, "a", "static", "sphere", vec![0.5], None, [0.0, 5.0, 0.0], 0.3);
+        add(&mut sim, "b", "dynamic", "sphere", vec![0.5], Some(1.0), [1.0, 5.0, 0.0], 0.3);
+        let res = sim.add_joint(JointDefinition {
+            id: "j".to_string(),
+            joint_type: "revolute".to_string(),
+            body_a: "a".to_string(),
+            body_b: "b".to_string(),
+            anchor_a: [0.0, 0.0, 0.0],
+            anchor_b: [0.0, 0.0, 0.0],
+            axis: Some([0.0, 0.0, 1.0]),
+            limits: None,
+        });
+        assert!(res.is_ok(), "revolute joint add failed: {res:?}");
+        sim.step(10, None); // should not panic with the joint present
+    }
+
+    #[test]
+    fn orientation_round_trips() {
+        let mut sim = Simulation::new(cfg(0.0));
+        // 90° about Z as a quaternion [x,y,z,w]
+        let q = [0.0, 0.0, (std::f32::consts::FRAC_PI_4).sin(), (std::f32::consts::FRAC_PI_4).cos()];
+        sim.add_body(
+            "b".to_string(), "kinematic".to_string(), "box".to_string(), vec![1.0, 1.0, 1.0], None,
+            Some([0.0, 0.0, 0.0]), Some(q), None, None, 0.5, 0.0,
+            None, None, None, None, None, None, None, None,
+        );
+        let st = sim.get_body_state("b").unwrap();
+        for i in 0..4 {
+            assert!((st.orientation[i] - q[i]).abs() < 1e-4, "orientation[{i}] {} != {}", st.orientation[i], q[i]);
+        }
     }
 }

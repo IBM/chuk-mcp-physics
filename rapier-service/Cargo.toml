@@ -5,13 +5,13 @@ edition = "2021"
 
 [dependencies]
 # Rapier physics engine
-rapier3d = { version = "0.18", features = ["serde-serialize"] }
+rapier3d = { version = "0.33", features = ["serde-serialize"] }
 
 # Web framework
-axum = "0.7"
+axum = "0.8"
 tokio = { version = "1.35", features = ["full"] }
-tower = "0.4"
-tower-http = { version = "0.5", features = ["cors"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors"] }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -25,10 +25,10 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Math
-nalgebra = "0.32"
+nalgebra = "0.35"
 
 # Storage backends
-redis = { version = "0.24", features = ["tokio-comp", "connection-manager"] }
+redis = { version = "0.32", features = ["tokio-comp", "connection-manager"] }
 async-trait = "0.1"
 
 [profile.release]

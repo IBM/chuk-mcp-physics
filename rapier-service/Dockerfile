@@ -1,7 +1,7 @@
 # Multi-stage build for Rapier Physics Service
 
 # Stage 1: Builder
-FROM rust:1.83-slim as builder
+FROM rust:1.96-slim as builder
 
 WORKDIR /app
 

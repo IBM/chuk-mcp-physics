@@ -16,7 +16,7 @@ jobs:
       run:
         working-directory: rapier-service
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       # ubuntu-latest ships a stable Rust toolchain; no toolchain action needed.
       - run: rustc --version && cargo --version
       - run: cargo build --verbose

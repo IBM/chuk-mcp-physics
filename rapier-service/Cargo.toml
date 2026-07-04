@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 # Rapier physics engine
-rapier3d = { version = "0.33", features = ["serde-serialize"] }
+rapier3d = { version = "0.34", features = ["serde-serialize"] }
 
 # Web framework
 axum = "0.8"

@@ -975,9 +975,9 @@ dependencies = [
 
 [[package]]
 name = "rapier3d"
-version = "0.35.1"
+version = "0.35.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1c797fd96e34ae075c7b849741f89968ebedb86b584023420d68a1993bdc5cc"
+checksum = "34441e672ed1c2ff990a2590ad1e9099e373a1fb99b0c353cac591ce3f5022e2"
 dependencies = [
  "approx",
  "arrayvec",

@@ -323,9 +323,9 @@ checksum = "f70749695b063ecbf6b62949ccccde2e733ec3ecbbd71d467dca4e5c6c97cca0"
 
 [[package]]
 name = "glam"
-version = "0.33.1"
+version = "0.33.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "898f5a568a84989b6c0f8caa50a93074b97dbdc58fc6d9543157bb4562758933"
+checksum = "928452f9c953e142b2f0973e4bd5f34445fcaa8069556ea97a3c9d34d15a4cf8"
 dependencies = [
  "approx",
  "libm",
@@ -334,12 +334,12 @@ dependencies = [
 
 [[package]]
 name = "glamx"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9847f980afb0628849bcd6a406cdffd29eb9d53fca83e1646005901a9acd4c5c"
+checksum = "28d74079318e3a077bd3d15faa90fde24fa37bb9f157f92f853e6019a15fd413"
 dependencies = [
  "approx",
- "glam 0.33.1",
+ "glam 0.33.10",
  "nalgebra",
  "num-traits",
  "serde",
@@ -714,7 +714,7 @@ dependencies = [
  "glam 0.30.10",
  "glam 0.31.1",
  "glam 0.32.1",
- "glam 0.33.1",
+ "glam 0.33.10",
  "matrixmultiply",
  "nalgebra-macros",
  "num-complex",
@@ -767,13 +767,13 @@ dependencies = [
 
 [[package]]
 name = "num-derive"
-version = "0.4.2"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed3955f1a9c7c0c15e092f9c887db08b1fc683305fdf6eb6684f22555355e202"
+checksum = "e4e98dc3b890f6c23a0f9d3d491a2823d0dea0fa656302a13dd225fa924112a8"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 3.0.0",
 ]
 
 [[package]]
@@ -846,9 +846,9 @@ dependencies = [
 
 [[package]]
 name = "parry3d"
-version = "0.30.2"
+version = "0.31.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01b00bf3ea4e0961a3f44aeb666b7dc3b0e87027b629561bd8283a7f6b2e2ed1"
+checksum = "7b626edc0b497dba4bdf6e1e0797895294ed9f61dac2bd28cb5d34d37ad2ca7e"
 dependencies = [
  "approx",
  "arrayvec",
@@ -975,9 +975,9 @@ dependencies = [
 
 [[package]]
 name = "rapier3d"
-version = "0.35.3"
+version = "0.36.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b14829af0960a134e2c39605bd6617a5c70e9837ce1b7c3c738efedc6fd8610"
+checksum = "c2e2b20538584bb3ba5bfe6a66c2d9a242ee17d15e5398be0fa35279c7d73739"
 dependencies = [
  "approx",
  "arrayvec",
